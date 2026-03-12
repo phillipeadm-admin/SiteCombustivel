@@ -59,7 +59,10 @@ export async function addAbastecimento(formData: FormData) {
         return { error: "Campos obrigatórios estão faltando ou são inválidos" };
     }
 
-    const customDate = new Date(dataString);
+    // A data vem do formulário sem fuso (ex: "2026-03-12T06:30").
+    // O servidor (Vercel) roda em UTC, então precisamos indicar que é UTC-3 (horário de Brasília).
+    // Desde 2019, o Brasil não tem mais horário de verão, então -03:00 é sempre correto.
+    const customDate = new Date(dataString + '-03:00');
 
     let imagemUrl = null;
     console.log("-> Iniciando addAbastecimento. file:", file ? file.name : "Nenhum arquivo");
@@ -125,7 +128,7 @@ export async function updateAbastecimento(id: number, dataStr: string, quantidad
     await prisma.abastecimento.update({
         where: { id },
         data: {
-            data: new Date(dataStr),
+            data: new Date(dataStr + '-03:00'),
             quantidade,
             observacoes
         }

@@ -205,6 +205,47 @@ export async function getChartData() {
     };
 }
 
+export async function getDashboardData() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    startOfMonth.setHours(0, 0, 0, 0);
+    startOfNextMonth.setHours(0, 0, 0, 0);
+
+    const [abastecimentosMes, totalAggregate, countMes] = await Promise.all([
+        prisma.abastecimento.findMany({
+            where: { data: { gte: startOfMonth, lt: startOfNextMonth } },
+            include: { pessoa: true, equipamento: true },
+            orderBy: { data: 'desc' },
+        }),
+        prisma.abastecimento.aggregate({
+            _sum: { quantidade: true },
+            where: { data: { gte: startOfMonth, lt: startOfNextMonth } },
+        }),
+        prisma.abastecimento.count({
+            where: { data: { gte: startOfMonth, lt: startOfNextMonth } },
+        }),
+    ]);
+
+    // Montar dados do gráfico a partir dos registros já buscados (sem nova query)
+    const equipamentosMap: Record<string, number> = {};
+    abastecimentosMes.forEach(abs => {
+        const eqName = abs.equipamento?.nome || 'Desconhecido';
+        equipamentosMap[eqName] = (equipamentosMap[eqName] || 0) + abs.quantidade;
+    });
+    const litrosPorEquipamento = Object.entries(equipamentosMap)
+        .map(([nome, litros]) => ({ nome, litros }))
+        .sort((a, b) => b.litros - a.litros);
+
+    return {
+        abastecimentos: abastecimentosMes,
+        totalLitros: totalAggregate._sum.quantidade || 0,
+        registrosMes: countMes,
+        litrosPorEquipamento,
+    };
+}
+
 export async function getUltimos3MesesData() {
     const now = new Date();
     const startMes3 = new Date(now.getFullYear(), now.getMonth() - 2, 1);

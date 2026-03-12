@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Navigation } from "@/components/Navigation";
 import { AreaChart as AreaChartIcon, BarChart3, Droplet, Users, Loader2, X } from "lucide-react";
-import { getAbastecimentos, getDashboardMetrics, getChartData } from "@/app/actions";
+import { getDashboardData } from "@/app/actions";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 type Abastecimento = {
@@ -33,22 +33,12 @@ export default function DashboardPage() {
 
     useEffect(() => {
         startTransition(async () => {
-            const abs = await getAbastecimentos();
-            const st = await getDashboardMetrics();
-            const charts = await getChartData();
-            setData(abs as any);
-            setMetrics(st);
-            setChartData(charts);
+            const result = await getDashboardData();
+            setData(result.abastecimentos as any);
+            setMetrics({ totalLitros: result.totalLitros, registrosMes: result.registrosMes });
+            setChartData({ litrosPorEquipamento: result.litrosPorEquipamento });
         });
     }, []);
-
-    const filteredTableData = data.filter(row => {
-        const rowDate = new Date(row.data);
-        return rowDate.getFullYear().toString() === currentYearStr && rowDate.getMonth() === currentMonthIndex;
-    });
-
-    const anosDisponiveisGlobal = Array.from(new Set(data.map(d => new Date(d.data).getFullYear()))).sort((a, b) => b - a);
-    if (anosDisponiveisGlobal.length === 0) anosDisponiveisGlobal.push(new Date().getFullYear());
 
     return (
         <div className="space-y-6 relative">
@@ -153,14 +143,14 @@ export default function DashboardPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredTableData.length === 0 && (
+                            {data.length === 0 && (
                                 <tr>
                                     <td colSpan={5} className="py-8 text-center text-slate-500">
                                         Nenhum abastecimento registrado neste período.
                                     </td>
                                 </tr>
                             )}
-                            {filteredTableData.map((row) => (
+                            {data.map((row) => (
                                 <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                                     <td className="py-4 pl-2 text-slate-600">
                                         {new Date(row.data).toLocaleDateString('pt-BR')}

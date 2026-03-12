@@ -405,7 +405,7 @@ export default function AdminPage() {
                                         </>
                                     ) : (
                                         <>
-                                            <td className="py-4 pl-2 text-slate-600">{new Date(abs.data).toLocaleString('pt-BR')}</td>
+                                            <td className="py-4 pl-2 text-slate-600">{new Date(abs.data).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</td>
                                             <td className="py-4 text-slate-900">{abs.pessoa?.nome}</td>
                                             <td className="py-4 text-slate-900">{abs.equipamento?.nome}</td>
                                             <td className="py-4 font-bold text-[#006fb3]">{abs.quantidade.toFixed(2)} L</td>

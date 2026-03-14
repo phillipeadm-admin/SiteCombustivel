@@ -72,12 +72,18 @@ export function AbastecimentoForm({ equipes, equipamentos }: Props) {
 
       try {
         setIsCompressing(true);
+        console.log("Original file size:", (file.size / 1024 / 1024).toFixed(2), "MB");
+        
         const options = {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1280,
-          useWebWorker: true
+          maxSizeMB: 1, // Limite de 1MB para Cloudinary
+          maxWidthOrHeight: 1920, // Full HD para manter legibilidade
+          useWebWorker: true,
+          initialQuality: 0.8 // Qualidade inicial um pouco menor para garantir compressão
         };
+        
         const compressedFile = await imageCompression(file, options);
+        console.log("Compressed file size:", (compressedFile.size / 1024 / 1024).toFixed(2), "MB");
+
         const compressedBlobFile = new File([compressedFile], file.name, {
           type: compressedFile.type,
           lastModified: Date.now(),
@@ -87,6 +93,7 @@ export function AbastecimentoForm({ equipes, equipamentos }: Props) {
         setPreviewUrl(URL.createObjectURL(compressedBlobFile));
       } catch (error) {
         console.error("Erro ao comprimir imagem:", error);
+        // Fallback para o arquivo original se a compressão falhar
         setImagem(file);
         setPreviewUrl(URL.createObjectURL(file));
       } finally {

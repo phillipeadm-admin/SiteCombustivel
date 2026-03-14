@@ -205,6 +205,61 @@ export async function getChartData() {
     };
 }
 
+export async function getRelatorioData(filters: { mes?: string, ano?: string, equipamento?: string, pessoa?: string }) {
+    const where: any = {};
+
+    if (filters.ano && filters.ano !== "TODOS") {
+        const year = parseInt(filters.ano);
+        where.data = {
+            gte: new Date(year, 0, 1),
+            lt: new Date(year + 1, 0, 1)
+        };
+    }
+
+    if (filters.mes && filters.mes !== "TODOS") {
+        const mesesStr = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const mesIndex = mesesStr.indexOf(filters.mes);
+        const year = filters.ano && filters.ano !== "TODOS" ? parseInt(filters.ano) : new Date().getFullYear();
+        
+        where.data = {
+            gte: new Date(year, mesIndex, 1),
+            lt: new Date(year, mesIndex + 1, 1)
+        };
+    }
+
+    if (filters.equipamento && filters.equipamento !== "TODOS") {
+        where.equipamento = { nome: filters.equipamento };
+    }
+
+    if (filters.pessoa && filters.pessoa !== "TODOS") {
+        where.pessoa = { nome: filters.pessoa };
+    }
+
+    const [abastecimentos, equipamentos, pessoas] = await Promise.all([
+        prisma.abastecimento.findMany({
+            where,
+            select: {
+                id: true,
+                data: true,
+                quantidade: true,
+                observacoes: true,
+                imagemUrl: true,
+                pessoa: { select: { nome: true, equipe: true } },
+                equipamento: { select: { nome: true } }
+            },
+            orderBy: { data: 'desc' }
+        }),
+        prisma.equipamento.findMany({ select: { nome: true } }),
+        prisma.pessoa.findMany({ select: { nome: true } })
+    ]);
+
+    return {
+        abastecimentos,
+        equipamentos: Array.from(new Set(equipamentos.map((e: { nome: string }) => e.nome))),
+        pessoas: Array.from(new Set(pessoas.map((p: { nome: string }) => p.nome)))
+    };
+}
+
 export async function getDashboardData() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

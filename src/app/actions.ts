@@ -191,7 +191,7 @@ export async function getChartData() {
     });
 
     const equipamentosMap: Record<string, number> = {};
-    allRecordsMes.forEach(abs => {
+    allRecordsMes.forEach((abs: { quantidade: number, equipamento: { nome: string } | null }) => {
         const eqName = abs.equipamento?.nome || "Desconhecido";
         equipamentosMap[eqName] = (equipamentosMap[eqName] || 0) + abs.quantidade;
     });
@@ -216,7 +216,18 @@ export async function getDashboardData() {
     const [abastecimentosMes, totalAggregate, countMes] = await Promise.all([
         prisma.abastecimento.findMany({
             where: { data: { gte: startOfMonth, lt: startOfNextMonth } },
-            include: { pessoa: true, equipamento: true },
+            select: {
+                id: true,
+                data: true,
+                quantidade: true,
+                imagemUrl: true,
+                pessoa: {
+                    select: { nome: true, equipe: true }
+                },
+                equipamento: {
+                    select: { nome: true }
+                }
+            },
             orderBy: { data: 'desc' },
         }),
         prisma.abastecimento.aggregate({
@@ -230,7 +241,7 @@ export async function getDashboardData() {
 
     // Montar dados do gráfico a partir dos registros já buscados (sem nova query)
     const equipamentosMap: Record<string, number> = {};
-    abastecimentosMes.forEach(abs => {
+    abastecimentosMes.forEach((abs: any) => {
         const eqName = abs.equipamento?.nome || 'Desconhecido';
         equipamentosMap[eqName] = (equipamentosMap[eqName] || 0) + abs.quantidade;
     });
@@ -276,7 +287,7 @@ export async function getUltimos3MesesData() {
         });
     }
 
-    allRecords.forEach(abs => {
+    allRecords.forEach((abs: { quantidade: number, data: Date }) => {
         const rowDate = new Date(abs.data);
         const ref = `${mesesStr[rowDate.getMonth()]}/${rowDate.getFullYear()}`;
         const target = dataTresMeses.find(m => m.mesAno === ref);

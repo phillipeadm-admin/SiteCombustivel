@@ -1,44 +1,14 @@
-"use client";
-
-import { useEffect, useState, useTransition } from "react";
 import { Navigation } from "@/components/Navigation";
-import { AreaChart as AreaChartIcon, BarChart3, Droplet, Users, Loader2, X } from "lucide-react";
+import { AreaChart as AreaChartIcon, BarChart3, Droplet } from "lucide-react";
 import { getDashboardData } from "@/app/actions";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { DashboardCharts } from "@/components/DashboardCharts";
+import { ImagePreview } from "@/components/ImagePreview";
 
-type Abastecimento = {
-    id: number;
-    data: Date;
-    quantidade: number;
-    equipamento: { nome: string };
-    pessoa: { nome: string, equipe: string };
-    imagemUrl?: string | null;
-};
-
-export default function DashboardPage() {
-    const [data, setData] = useState<Abastecimento[]>([]);
-    const [metrics, setMetrics] = useState({ totalLitros: 0, registrosMes: 0 });
-    const [chartData, setChartData] = useState<{
-        litrosPorEquipamento: { nome: string, litros: number }[]
-    }>({
-        litrosPorEquipamento: []
-    });
-
-    const mesesStr = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    const currentMonthIndex = new Date().getMonth();
-    const currentYearStr = new Date().getFullYear().toString();
-
-    const [isPending, startTransition] = useTransition();
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-    useEffect(() => {
-        startTransition(async () => {
-            const result = await getDashboardData();
-            setData(result.abastecimentos as any);
-            setMetrics({ totalLitros: result.totalLitros, registrosMes: result.registrosMes });
-            setChartData({ litrosPorEquipamento: result.litrosPorEquipamento });
-        });
-    }, []);
+export default async function DashboardPage() {
+    const result = await getDashboardData();
+    const data = result.abastecimentos;
+    const metrics = { totalLitros: result.totalLitros, registrosMes: result.registrosMes };
+    const chartData = { litrosPorEquipamento: result.litrosPorEquipamento };
 
     return (
         <div className="space-y-6 relative">
@@ -49,12 +19,6 @@ export default function DashboardPage() {
                     Visão Geral do Mês
                 </h1>
             </header>
-
-            {isPending && (
-                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-3xl">
-                    <Loader2 className="w-10 h-10 text-[#006fb3] animate-spin" />
-                </div>
-            )}
 
             {/* Cards de Métricas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -91,34 +55,11 @@ export default function DashboardPage() {
 
             {/* Gráficos Recharts */}
             <div className="grid grid-cols-1 mt-6">
-                {/* Gráfico: Consumo por Equipamento no Mês */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-lg">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                         <h2 className="text-xl font-bold text-slate-900">Consumo por Equipamento</h2>
                     </div>
-                    <div className="h-80 w-full mb-8">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData.litrosPorEquipamento || []} margin={{ top: 10, right: 10, left: -20, bottom: 80 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                <XAxis
-                                    dataKey="nome"
-                                    stroke="#64748b"
-                                    tick={{ fill: '#64748b', fontSize: 12, dy: 30, dx: -20 }}
-                                    angle={-45}
-                                    textAnchor="end"
-                                    interval={0}
-                                    tickMargin={10}
-                                />
-                                <YAxis stroke="#64748b" tick={{ fill: '#64748b' }} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderRadius: '12px', color: '#0f172a' }}
-                                    itemStyle={{ color: '#faa954', fontWeight: 'bold' }}
-                                    cursor={{ fill: '#f1f5f9', opacity: 0.8 }}
-                                />
-                                <Bar dataKey="litros" name="Total (L)" fill="#faa954" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                    <DashboardCharts litrosPorEquipamento={chartData.litrosPorEquipamento} />
                 </div>
             </div>
 
@@ -166,19 +107,7 @@ export default function DashboardPage() {
                                     </td>
                                     <td className="py-4 text-center">
                                         {row.imagemUrl ? (
-                                            <div className="relative group/img inline-block cursor-pointer">
-                                                <button
-                                                    onClick={() => setSelectedImage(row.imagemUrl!)}
-                                                    className="text-[#006fb3] hover:text-[#faa954] hover:underline transition-colors text-sm font-medium flex items-center gap-1 justify-center"
-                                                >
-                                                    Ver Foto
-                                                </button>
-                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/img:block z-50 pointer-events-none">
-                                                    <div className="bg-white p-2 rounded-xl shadow-2xl border border-slate-200">
-                                                        <img src={row.imagemUrl} alt="Comprovante" className="max-w-[250px] max-h-[300px] object-cover rounded-lg" />
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <ImagePreview imagemUrl={row.imagemUrl} />
                                         ) : (
                                             <span className="text-slate-300 text-sm">-</span>
                                         )}
@@ -189,31 +118,6 @@ export default function DashboardPage() {
                     </table>
                 </div>
             </section>
-
-            {/* Modal de Imagem Ampliada */}
-            {selectedImage && (
-                <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm"
-                    onClick={() => setSelectedImage(null)}
-                >
-                    <div
-                        className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-200"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            className="absolute -top-12 right-0 bg-white/10 hover:bg-white/30 text-white rounded-full p-2 backdrop-blur-md transition-colors"
-                            onClick={() => setSelectedImage(null)}
-                        >
-                            <X className="w-8 h-8" />
-                        </button>
-                        <img
-                            src={selectedImage}
-                            alt="Comprovante Ampliado"
-                            className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/10"
-                        />
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
